@@ -1,0 +1,95 @@
+import json
+import unittest
+from datetime import datetime
+
+# Load JSON files (make sure files are in same folder)
+with open("C:\\Users\\dhaya\\Downloads\\data-1.json", "r", encoding="utf-8") as f:
+    jsonData1 = json.load(f)
+
+with open("C:\\Users\\dhaya\\Downloads\\data-2.json", "r", encoding="utf-8") as f:
+    jsonData2 = json.load(f)
+
+with open("C:\\Users\\dhaya\\Downloads\\data-result.json", "r", encoding="utf-8") as f:
+    jsonExpectedResult = json.load(f)
+
+
+# Convert Format 1 → Target
+def convertFromFormat1(jsonObject):
+    parts = jsonObject["location"].split("/")
+
+    return {
+        "deviceID": jsonObject["deviceID"],
+        "deviceType": jsonObject["deviceType"],
+        "timestamp": int(jsonObject["timestamp"]),
+        "location": {
+            "country": parts[0],
+            "city": parts[1],
+            "area": parts[2],
+            "factory": parts[3],
+            "section": parts[4]
+        },
+        
+        "data": {
+            "status": jsonObject["operationStatus"],
+            "temperature": jsonObject["temp"]
+        }
+    }
+
+
+# Convert Format 2 → Target
+def convertFromFormat2(jsonObject):
+
+    # Convert timestamp to milliseconds
+    try:
+        dt = datetime.strptime(jsonObject["timestamp"], "%Y-%m-%dT%H:%M:%S.%fZ")
+    except:
+        dt = datetime.strptime(jsonObject["timestamp"], "%Y-%m-%dT%H:%M:%S.%f")
+
+    timestamp = int((dt - datetime(1970, 1, 1)).total_seconds() * 1000)
+
+    return {
+        "deviceID": jsonObject["device"]["id"],
+        "deviceType": jsonObject["device"]["type"].replace(" ", ""),
+        "timestamp": timestamp,
+        "location": {
+            "country": jsonObject["country"],
+            "city": jsonObject["city"],
+            "area": jsonObject["area"],
+            "factory": jsonObject["factory"],
+            "section": jsonObject["section"]
+        },
+        
+        "data": {
+            "status": jsonObject["data"]["status"],
+            "temperature": jsonObject["data"]["temperature"]
+        }
+    }
+
+
+# Main function
+def main(jsonObject):
+    if "device" in jsonObject:
+        return convertFromFormat2(jsonObject)
+    else:
+        return convertFromFormat1(jsonObject)
+
+
+# Unit Tests
+class TestSolution(unittest.TestCase):
+
+    def test_sanity(self):
+        result = json.loads(json.dumps(jsonExpectedResult))
+        self.assertEqual(result, jsonExpectedResult)
+
+    def test_dataType1(self):
+        result = main(jsonData1)
+        self.assertEqual(result, jsonExpectedResult, "Type 1 failed")
+
+    def test_dataType2(self):
+        result = main(jsonData2)
+        self.assertEqual(result, jsonExpectedResult, "Type 2 failed")
+
+
+# Run tests
+if __name__ == "__main__":
+    unittest.main()
